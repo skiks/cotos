@@ -41,7 +41,7 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
         caption: post.body,
         parse_mode: 'Markdown',
       });
-      db.prepare(\`UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?\`).run(photoMsg.message_id, postId);
+      db.prepare(`UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?`).run(photoMsg.message_id, postId);
       return { message_id: photoMsg.message_id };
     }
     
