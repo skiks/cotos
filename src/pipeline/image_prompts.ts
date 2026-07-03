@@ -13,17 +13,17 @@ const aiClient = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
 });
 
-const PROMPT_GEN = `Ты — создатель визуальных промптов для AI-генерации изображений.
-На основе текста поста создай детальный промпт на английском для генерации иллюстрации.
+const PROMPT_GEN = `You are an editorial illustrator for The Verge / TechCrunch.
+Create a DETAILED image generation prompt based ONLY on the article content below.
 
-Правила:
-- Опиши КОНКРЕТНУЮ сцену или концепт из поста, а не абстрактный "AI".
-- Укажи стиль: editorial illustration, dark tech aesthetic, minimalist.
-- Никакого текста на изображении.
-- Должно выглядеть как иллюстрация к техно-новости.
-- 150-250 символов на английском.
+CRITICAL RULES:
+- Describe ONE specific scene, object, or visual metaphor from the article
+- NO generic "AI", "robot", "futuristic tech", "neural network", "flying object"
+- Think: what would an illustrator draw for THIS specific article?
+- Use concrete objects, specific colors, real-world contexts
+- Dark minimalist editorial style. No text labels. 200-350 chars English.
 
-Верни ТОЛЬКО промпт, без пояснений.`;
+Output: ONLY the image prompt, nothing else.`;
 
 export async function generateVisualPrompt(postBody: string, title: string): Promise<string> {
   const response = await aiClient.chat.completions.create({
@@ -51,32 +51,45 @@ export async function generateImageForPost(postId: number): Promise<string | nul
   if (!post) return null;
 
   // Step 1: Generate visual prompt from post content
-  console.log(`[ImageGen] #${postId}: generating visual prompt...`);
   const visualPrompt = await generateVisualPrompt(post.body, post.title);
-  console.log(`[ImageGen] #${postId}: "${visualPrompt.slice(0, 120)}..."`);
+  console.log(`[ImageGen] #${postId}: "${visualPrompt.slice(0, 100)}..."`);
 
-  // Step 2: Generate image via Nano Banana
-  try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: visualPrompt }] }],
-          generationConfig: { responseModalities: ['image', 'text'] }
-        })
-      }
-    );
-    
-    const data = await resp.json() as any;
-    const imgData = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
-    if (imgData) {
-      return `data:${imgData.inlineData.mimeType};base64,${imgData.inlineData.data}`;
-    }
-    return null;
-  } catch (e: any) {
-    console.error(`[ImageGen] Error: ${e.message}`);
-    return null;
+  // Step 2: Generate image
+  const imgData = await generateImage(visualPrompt);
+  if (imgData) {
+    db.prepare('UPDATE posts SET media_url = ? WHERE id = ?').run(imgData, postId);
+    return imgData;
   }
+  return null;
+}
+
+// ─── Ensure EVERY post has an image before publishing ───────
+
+export async function ensureImageForPost(postId: number): Promise<string | null> {
+  const post = db.prepare('SELECT id, media_url FROM posts WHERE id = ?').get(postId) as any;
+  if (!post) return null;
+  
+  // Already has real image (not t.me link)?
+  if (post.media_url && !post.media_url.includes('t.me') && post.media_url.startsWith('http')) {
+    return post.media_url;
+  }
+  
+  // Generate
+  console.log(`[Image] #${postId}: no real image, generating...`);
+  return generateImageForPost(postId);
+}
+
+async function generateImage(prompt: string): Promise<string | null> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${key}`,
+      { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseModalities:['image','text']}}) }
+    );
+    const d = await r.json() as any;
+    const img = d?.candidates?.[0]?.content?.parts?.find((p:any) => p.inlineData);
+    return img ? `data:${img.inlineData.mimeType};base64,${img.inlineData.data}` : null;
+  } catch { return null; }
 }
