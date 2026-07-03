@@ -46,24 +46,20 @@ const REWRITE_PROMPT = `Ты пишешь пост для Telegram-канала 
 Аудитория: друзья, предприниматели, обычные люди, фаундеры, ребята с Бали.
 
 Правила:
-- **Пиши на отъебись. Без вылизывания. Как будто торопишься.**
-- **Минимум знаков препинания — только когда без них никак.**
-- 500-800 символов макс. Короче = лучше.
-- Хук — одна фраза без точки в конце если можно.
-- Главное за 2-3 абзаца. Без воды.
-- Личное мнение — 1-2 предложения.
-- Вывод: одна строчка «что делать / где деньги».
-- Лёгкий мат норм (хуйня, дохуя, пиздец).
-- Звучи как пацан который шарит, не как бот из поддержки.
-- Можно упомянуть другие каналы или комьюнити.
-- Если есть цитата от кого-то из индустрии — вставь.
+- **300-500 символов.**
+- **Мат — РЕДКО. МАКСИМУМ в 10% предложений. Только когда прям напрашивается. Метко, не как быдло.**
+- **Маркдаун ОБЯЗАТЕЛЕН: **жирный** на ключевых словах, _курсив_ на иронии, ||спойлер|| если интрига. Это помогает читать.**
+- **Пиши ВСЕГДА с маленькой буквы. Даже начало предложения.**
+- **Допускай опечатки: «пшел» «чо» «ща» «ваще» «эт» «кароч».**
+- **Никаких заглавных букв. Вообще.**
+- Без канцелярита. Простые слова.
+- Звучи как пацан который шарит и спешит.
 
 Формат:
-{хук — 1 фраза}
-{суть — 2-3 абзаца}
-{мнение — 1-2 предложения}
+{хук}
+{суть — 1-2 абзаца}
+{от себя — 1 предложение, если есть}
 {вывод — 1 строка}
-{хэштеги}
 
 Входные данные:
 Заголовок: {title}
@@ -127,11 +123,11 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
   const response = await client.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: 'Ты — Алён, автор канала @cotos. Пиши в своём стиле.' },
+      { role: 'system', content: 'Ты — Алён. Айтишник с Бали. Пишешь в телегу друзьям быстро с опечатками без заглавных букв. АКТИВНО используй **bold** и *italic* markdown — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
       { role: 'user', content: prompt },
     ],
     temperature: 0.8,
-    max_tokens: 600,
+    max_tokens: 400,
   });
   return response.choices[0].message.content || '';
 }
@@ -174,13 +170,13 @@ export async function processItem(rawId: number) {
     JSON.stringify(classification.tags || []),
     scores.novelty, scores.practical_value, scores.wow_effect, scores.money_potential, scores.credibility,
     scores.total_score,
-    scores.recommendation || (scores.total_score >= 7 ? 'post' : 'skip'),
+    scores.recommendation || (scores.total_score >= 5 ? 'post' : 'skip'),
     scores.reason
   );
   const processedId = Number(info.lastInsertRowid);
 
   // 5. Rewrite if score >= 8
-  if (scores.total_score >= 7 && facts.risk_level !== 'high') {
+  if (scores.total_score >= 6 && facts.risk_level !== 'high') {
     const postBody = await rewrite({
       title: raw.title,
       summary_ru: classification.summary_ru,
