@@ -185,9 +185,9 @@ export async function processItem(rawId: number) {
     });
 
     db.prepare(`
-      INSERT INTO posts (processed_item_id, post_type, title, body, source_links, status)
-      VALUES (?, 'main_news', ?, ?, ?, 'draft')
-    `).run(processedId, raw.title, postBody, raw.url);
+      INSERT INTO posts (processed_item_id, post_type, title, body, source_links, media_url, status)
+      VALUES (?, 'main_news', ?, ?, ?, ?, 'draft')
+    `).run(processedId, raw.title, postBody, raw.url, raw.media_url || null);
 
     db.prepare('UPDATE raw_items SET status = ? WHERE id = ?').run('posted', rawId);
     return { action: 'post', category: classification.category, score: scores.total_score };

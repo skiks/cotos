@@ -10,6 +10,23 @@ function getChannelId() { return process.env['COTOS_CHANNEL_ID'] || '@cotos' };
 
 let bot: TelegramBot | null = null;
 
+
+// ─── Custom Emoji Packs ─────────────────────────────────────
+const CUSTOM_EMOJI_PACKS = [
+  'https://t.me/addemoji/durovcaps',
+  'https://t.me/addemoji/PepePls',
+  'https://t.me/addemoji/borisovatel',
+  'https://t.me/addemoji/wtc',
+  'https://t.me/addstickers/FunnyCats',
+];
+
+function addCustomEmojiFooter(body: string): string {
+  const pack = CUSTOM_EMOJI_PACKS[Math.floor(Math.random() * CUSTOM_EMOJI_PACKS.length)];
+  return body + `
+
+[🔥 эмодзи-пак](${pack})`;
+}
+
 function getBot(): TelegramBot {
   if (!bot) {
     const token = getBotToken(); if (!token) throw new Error('COTOS_BOT_TOKEN not set');
@@ -19,33 +36,37 @@ function getBot(): TelegramBot {
 }
 
 export async function publishPost(postId: number): Promise<{ message_id: number } | null> {
-  const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(postId) as any;
+  interface PostRow { id: number; body: string; status: string; url: string; [key: string]: any; }
+  const post = db.prepare('SELECT p.*, ri.url FROM posts p LEFT JOIN processed_items pi ON p.processed_item_id = pi.id LEFT JOIN raw_items ri ON pi.raw_item_id = ri.id WHERE p.id = ?').get(postId) as PostRow;
   if (!post) throw new Error(`Post ${postId} not found`);
   if (post.status === 'posted') return null;
 
   try {
     const b = getBot();
     
-    // Try to fetch og:image from source
+    // Fetch og:image from source URL
     let photoUrl: string | null = null;
     if (post.url) {
       try {
-        const html = await fetch(post.url, { signal: AbortSignal.timeout(4000) }).then(r => r.text());
-        const m = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i);
-        photoUrl = m?.[1] || null;
-      } catch {}
+        const html = await fetch(post.url, { signal: AbortSignal.timeout(4000) }).then((r: Response) => r.text());
+        const ogMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i);
+        const twMatch = html.match(/<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"/i);
+        photoUrl = ogMatch?.[1] || twMatch?.[1] || null;
+      } catch { /* timeout ok */ }
     }
     
     if (photoUrl) {
-      const photoMsg = await b.sendPhoto(CHANNEL_ID, photoUrl, {
-        caption: post.body,
-        parse_mode: 'Markdown',
-      });
-      db.prepare(`UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?`).run(photoMsg.message_id, postId);
-      return { message_id: photoMsg.message_id };
+      try {
+        const photoMsg = await b.sendPhoto(CHANNEL_ID, photoUrl, {
+          caption: addCustomEmojiFooter(post.body.slice(0, 900)),
+          parse_mode: 'Markdown',
+        });
+        db.prepare("UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?").run(photoMsg.message_id, postId);
+        return { message_id: photoMsg.message_id };
+      } catch { /* photo failed, fall back to text */ }
     }
     
-    const msg = await b.sendMessage(CHANNEL_ID, post.body, {
+    const msg = await b.sendMessage(CHANNEL_ID, addCustomEmojiFooter(post.body), {
       parse_mode: 'Markdown',
       disable_web_page_preview: false,
     });

@@ -72,13 +72,20 @@ async def collect():
                 url = f"https://t.me/{src['username']}/{msg.id}"
                 h = hash_item(title, text)
 
+                # Capture media (photo/video)
+                media_url = None
+                if msg.photo:
+                    media_url = f"https://t.me/{src['username']}/{msg.id}"  # TG link shows photo
+                elif msg.video:
+                    media_url = f"https://t.me/{src['username']}/{msg.id}"
+
                 try:
                     cursor = db.execute(
                         """INSERT OR IGNORE INTO raw_items 
-                           (source_name, external_id, url, title, raw_text, author, published_at, hash)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                           (source_name, external_id, url, title, raw_text, author, published_at, hash, media_url)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (f"tg:{src['username']}", str(msg.id), url, title, text,
-                         src["username"], msg.date.isoformat(), h),
+                         src["username"], msg.date.isoformat(), h, media_url),
                     )
                     if cursor.rowcount > 0:
                         added += 1
