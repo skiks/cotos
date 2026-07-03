@@ -1,45 +1,26 @@
 /**
- * Smart image prompt generator — extracts key concepts from post content
- * and creates a contextual visual prompt for Nano Banana
+ * Smart image prompt generator — creates illustration briefs from post content
+ * Strategy: original image from source first, AI generation as fallback
  */
 import db from '../db.js';
 
-function extractKeywords(text: string): string {
-  // Extract bold names (companies, products)
-  const boldNames = [...text.matchAll(/\*\*(.+?)\*\*/g)].map(m => m[1]);
-  
-  // Extract key phrases (remove markdown formatting)
-  const cleanText = text.replace(/[*_|]/g, ' ');
-  const words = cleanText.split(/\s+/).filter(w => w.length > 4);
-  
-  // Find unique meaningful words
-  const stopWords = new Set(['кароч', 'такой', 'такая', 'чтобы', 'который', 'просто', 'реально', 'вообще', 'сейчас', 'можно', 'самый']);
-  const keywords = [...new Set([...boldNames, ...words])]
-    .filter(w => !stopWords.has(w.toLowerCase()))
-    .slice(0, 5);
-  
-  return keywords.join(', ');
-}
-
 export function buildImagePrompt(post: { title: string; body: string; category: string }): string {
-  const keywords = extractKeywords(post.body);
+  // Extract the core topic from title (first 100 chars after removing markdown)
+  const cleanTitle = post.title?.replace(/[*_#`]/g, '').slice(0, 100) || '';
   
-  const categoryStyles: Record<string, string> = {
-    models: 'futuristic AI model visualization, neural network diagram style',
-    agents: 'autonomous AI agent illustration, robotic process automation',
-    tools: 'clean SaaS product illustration, modern UI card',
-    dev: 'code editor dark theme, terminal visualization with glowing text',
-    business: 'professional business infographic with data charts',
-    research: 'scientific paper visualization, abstract data patterns',
-    security: 'cybersecurity shield lock, dark hacker aesthetic',
-    robots: 'robot hardware device, mechanical engineering sketch',
-    money: 'financial growth chart, startup funding illustration',
-  };
-
-  const style = categoryStyles[post.category] || 'modern tech illustration, clean aesthetic';
-  const shortTitle = post.title?.slice(0, 60) || keywords;
+  // Extract first meaningful sentence after the hook (skip first line = hook)
+  const lines = post.body.split('\n').filter(l => l.length > 20);
+  const summaryLine = lines[1] || lines[0] || '';
+  const cleanSummary = summaryLine.replace(/[*_#`|]/g, ' ').slice(0, 150);
   
-  return `Tech illustration for AI news. Topic: ${shortTitle}. Key elements: ${keywords}. Style: ${style}. Clean, professional, no text on image. Suitable for Telegram channel post.`;
+  // Build a specific illustration brief — not generic
+  return [
+    `Editorial illustration for a tech news article.`,
+    `Article topic: "${cleanTitle}"`,
+    `Key idea: ${cleanSummary}`,
+    `Style: bold, minimalist tech illustration. Dark background with accent colors. No text labels. No clipart. Professional but edgy.`,
+    `Must visually represent the SPECIFIC topic above — not generic "AI" imagery.`,
+  ].join('\n');
 }
 
 export async function generateImageForPost(postId: number): Promise<string | null> {
@@ -55,7 +36,7 @@ export async function generateImageForPost(postId: number): Promise<string | nul
   if (!post) return null;
 
   const prompt = buildImagePrompt(post);
-  console.log(`[ImageGen] Prompt: ${prompt.slice(0, 100)}...`);
+  console.log(`[ImageGen] #${postId}: ${prompt.slice(0, 120)}...`);
 
   try {
     const resp = await fetch(
