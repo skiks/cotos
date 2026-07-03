@@ -5,7 +5,7 @@
 import { processItem } from './run.js';
 import db from '../db.js';
 
-const limit = parseInt(process.argv[2] || '20');
+const limit = parseInt(process.argv[2] || '50');
 
 const items = db.prepare(
   `SELECT id, title FROM raw_items WHERE status = 'new' ORDER BY id ASC LIMIT ?`
@@ -31,5 +31,6 @@ for (const item of items) {
   }
 }
 
+const queueCount = (db.prepare("SELECT COUNT(*) as c FROM posts WHERE status='draft'").get() as any)?.c || 0;
 console.log(`\n📊 Done: ${posts} posts, ${skipped} skipped, ${errors} errors`);
-console.log(`Queue: ${db.prepare("SELECT COUNT(*) as c FROM posts WHERE status='draft'").get()?.c || 0} drafts`);
+console.log(`Queue: ${queueCount} drafts`);

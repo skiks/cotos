@@ -27,6 +27,12 @@ function hashItem(title: string, url: string): string {
   return crypto.createHash('sha256').update(`${title}|${url}`).digest('hex').slice(0, 16);
 }
 
+const MAX_AGE_HOURS = 48;
+function isFresh(publishedAt: string): boolean {
+  const age = (Date.now() - new Date(publishedAt).getTime()) / 3600000;
+  return age <= MAX_AGE_HOURS;
+}
+
 async function collectSource(source: RSSSource): Promise<number> {
   let added = 0;
   try {
@@ -37,6 +43,8 @@ async function collectSource(source: RSSSource): Promise<number> {
     `);
 
     for (const item of feed.items || []) {
+      const pubDate = item.isoDate || item.pubDate || new Date().toISOString();
+      if (!isFresh(pubDate)) continue;
       const title = item.title || 'Untitled';
       const url = item.link || '';
       const rawText = (item.contentSnippet || item.content || '').slice(0, 5000);

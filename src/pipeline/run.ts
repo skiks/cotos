@@ -4,6 +4,7 @@
  */
 import OpenAI from 'openai';
 import db from '../db.js';
+import { attachImageToPost } from '../media/images.js';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || '',
@@ -45,23 +46,23 @@ const REWRITE_PROMPT = `Ты пишешь пост для Telegram-канала 
 Аудитория: друзья, предприниматели, обычные люди, фаундеры, ребята с Бали.
 
 Правила:
-- Объясни простыми словами, без канцелярита.
-- Покажи, почему это важно.
-- Добавь личное мнение.
-- Дай практический вывод: где польза/деньги/риск/будущее.
-- 900-1800 символов.
-- Хук в первой строке.
-- Максимум 1-3 эмодзи.
-- Не копируй оригинал.
-- Можно использовать лёгкий мат ("хуйня", "дохуя"), но не перебарщивать.
+- 500-900 символов. Не больше. Короче = лучше.
+- Хук в первой строке — одна фраза, сразу в точку.
+- Главное за 2-3 абзаца. Без воды.
+- Личное мнение — 1-2 предложения.
+- Вывод: одна строчка «что делать / где деньги».
+- Можно лёгкий мат ("хуйня", "дохуя"), но не перебарщивать.
 - Звучи как живой человек, не как ChatGPT.
+- Можно упомянуть другие каналы или сообщества где это обсуждают.
+- Если есть годная цитата из комьюнити — вставь.
+- 1-3 хэштега в конце.
 
 Формат:
-{хук}
-{объяснение}
-{мнение}
-{вывод}
-{1-3 хэштега}
+{хук — 1 фраза}
+{суть — 2-3 абзаца}
+{мнение — 1-2 предложения}
+{вывод — 1 строка}
+{хэштеги}
 
 Входные данные:
 Заголовок: {title}
@@ -129,7 +130,7 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
       { role: 'user', content: prompt },
     ],
     temperature: 0.8,
-    max_tokens: 1500,
+    max_tokens: 600,
   });
   return response.choices[0].message.content || '';
 }
@@ -144,6 +145,7 @@ export async function factCheck(item: { title: string; summary_ru: string }) {
 export async function processItem(rawId: number) {
   const raw = db.prepare('SELECT * FROM raw_items WHERE id = ?').get(rawId) as any;
   if (!raw) throw new Error(`Raw item ${rawId} not found`);
+  if (raw.status !== 'new') return { action: 'skip', reason: 'already processed' };
 
   // 1. Classify
   const classification = await classify(raw);
@@ -171,13 +173,13 @@ export async function processItem(rawId: number) {
     JSON.stringify(classification.tags || []),
     scores.novelty, scores.practical_value, scores.wow_effect, scores.money_potential, scores.credibility,
     scores.total_score,
-    scores.recommendation || (scores.total_score >= 8 ? 'post' : 'skip'),
+    scores.recommendation || (scores.total_score >= 7 ? 'post' : 'skip'),
     scores.reason
   );
   const processedId = Number(info.lastInsertRowid);
 
   // 5. Rewrite if score >= 8
-  if (scores.total_score >= 8 && facts.risk_level !== 'high') {
+  if (scores.total_score >= 7 && facts.risk_level !== 'high') {
     const postBody = await rewrite({
       title: raw.title,
       summary_ru: classification.summary_ru,
@@ -190,6 +192,7 @@ export async function processItem(rawId: number) {
       VALUES (?, 'main_news', ?, ?, ?, 'draft')
     `).run(processedId, raw.title, postBody, raw.url);
 
+    db.prepare('UPDATE raw_items SET status = ? WHERE id = ?').run('posted', rawId);
     return { action: 'post', category: classification.category, score: scores.total_score };
   }
 

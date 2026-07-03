@@ -5,15 +5,15 @@
 import TelegramBot from 'node-telegram-bot-api';
 import db from '../db.js';
 
-const BOT_TOKEN = process.env.COTOS_BOT_TOKEN || '';
-const CHANNEL_ID = process.env.COTOS_CHANNEL_ID || '@cotos';
+function getBotToken() { return process.env['COTOS_BOT_TOKEN'] || '' };
+function getChannelId() { return process.env['COTOS_CHANNEL_ID'] || '@cotos' };
 
 let bot: TelegramBot | null = null;
 
 function getBot(): TelegramBot {
   if (!bot) {
-    if (!BOT_TOKEN) throw new Error('COTOS_BOT_TOKEN not set');
-    bot = new TelegramBot(BOT_TOKEN, { polling: false });
+    const token = getBotToken(); if (!token) throw new Error('COTOS_BOT_TOKEN not set');
+    bot = new TelegramBot(token, { polling: false });
   }
   return bot;
 }

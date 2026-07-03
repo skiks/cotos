@@ -19,6 +19,7 @@ DB_PATH = os.path.join(PROJECT_ROOT, "data", "cotos.db")
 SOURCES_YAML = os.path.join(PROJECT_ROOT, "config", "sources.yaml")
 
 MSG_LIMIT = 3  # messages per channel per run
+MAX_AGE_HOURS = 48
 
 # ─── DB ──────────────────────────────────────────────────────
 def get_db():
@@ -62,6 +63,9 @@ async def collect():
 
             for msg in messages:
                 if not msg.text:
+                    continue
+                age_h = (datetime.now(timezone.utc) - msg.date).total_seconds() / 3600
+                if age_h > MAX_AGE_HOURS:
                     continue
                 title = msg.text[:80].replace("\n", " ")
                 text = msg.text[:5000]
