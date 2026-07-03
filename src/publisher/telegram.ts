@@ -58,7 +58,7 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
     if (photoUrl) {
       try {
         const photoMsg = await b.sendPhoto(CHANNEL_ID, photoUrl, {
-          caption: addCustomEmojiFooter(post.body.slice(0, 900)),
+          caption: post.body.slice(0, 900),
           parse_mode: 'Markdown',
         });
         db.prepare("UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?").run(photoMsg.message_id, postId);
@@ -66,9 +66,15 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
       } catch { /* photo failed, fall back to text */ }
     }
     
-    const msg = await b.sendMessage(CHANNEL_ID, addCustomEmojiFooter(post.body), {
+    const msg = await b.sendMessage(CHANNEL_ID, post.body, {
       parse_mode: 'Markdown',
-      disable_web_page_preview: false,
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '🎭 эмодзи', url: 'https://t.me/addemoji/durovcaps' },
+          { text: '🐸 стикеры', url: 'https://t.me/addemoji/PepePls' },
+        ]]
+      }
     });
 
     db.prepare(`

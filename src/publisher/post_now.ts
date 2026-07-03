@@ -75,7 +75,7 @@ if (post.media_url) {
     console.log('Posted text-only (image failed)');
   }
 } else {
-  await bot.sendMessage('@cotos', post.body, opts);
+  await bot.sendMessage('@cotos', body, opts);
 }
 const msg = await bot.sendMessage('@cotos', ' ', { disable_notification: true }) // dummy to get msg_id
   .catch(() => ({ message_id: 0 }));
