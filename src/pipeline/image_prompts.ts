@@ -1,26 +1,41 @@
 /**
- * Smart image prompt generator — creates illustration briefs from post content
- * Strategy: original image from source first, AI generation as fallback
+ * Two-step image generation:
+ * Step 1: AI generates a detailed visual prompt from post content
+ * Step 2: Nano Banana generates image from that prompt
+ * 
+ * Priority: original article image → AI generation → no image
  */
+import OpenAI from 'openai';
 import db from '../db.js';
 
-export function buildImagePrompt(post: { title: string; body: string; category: string }): string {
-  // Extract the core topic from title (first 100 chars after removing markdown)
-  const cleanTitle = post.title?.replace(/[*_#`]/g, '').slice(0, 100) || '';
-  
-  // Extract first meaningful sentence after the hook (skip first line = hook)
-  const lines = post.body.split('\n').filter(l => l.length > 20);
-  const summaryLine = lines[1] || lines[0] || '';
-  const cleanSummary = summaryLine.replace(/[*_#`|]/g, ' ').slice(0, 150);
-  
-  // Build a specific illustration brief — not generic
-  return [
-    `Editorial illustration for a tech news article.`,
-    `Article topic: "${cleanTitle}"`,
-    `Key idea: ${cleanSummary}`,
-    `Style: bold, minimalist tech illustration. Dark background with accent colors. No text labels. No clipart. Professional but edgy.`,
-    `Must visually represent the SPECIFIC topic above — not generic "AI" imagery.`,
-  ].join('\n');
+const aiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || '',
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
+});
+
+const PROMPT_GEN = `Ты — создатель визуальных промптов для AI-генерации изображений.
+На основе текста поста создай детальный промпт на английском для генерации иллюстрации.
+
+Правила:
+- Опиши КОНКРЕТНУЮ сцену или концепт из поста, а не абстрактный "AI".
+- Укажи стиль: editorial illustration, dark tech aesthetic, minimalist.
+- Никакого текста на изображении.
+- Должно выглядеть как иллюстрация к техно-новости.
+- 150-250 символов на английском.
+
+Верни ТОЛЬКО промпт, без пояснений.`;
+
+export async function generateVisualPrompt(postBody: string, title: string): Promise<string> {
+  const response = await aiClient.chat.completions.create({
+    model: process.env.COTOS_MODEL || 'deepseek-chat',
+    messages: [
+      { role: 'system', content: PROMPT_GEN },
+      { role: 'user', content: `Title: ${title}\n\nPost: ${postBody.slice(0, 500)}` },
+    ],
+    temperature: 0.7,
+    max_tokens: 200,
+  });
+  return response.choices[0].message.content?.trim() || '';
 }
 
 export async function generateImageForPost(postId: number): Promise<string | null> {
@@ -35,9 +50,12 @@ export async function generateImageForPost(postId: number): Promise<string | nul
   
   if (!post) return null;
 
-  const prompt = buildImagePrompt(post);
-  console.log(`[ImageGen] #${postId}: ${prompt.slice(0, 120)}...`);
+  // Step 1: Generate visual prompt from post content
+  console.log(`[ImageGen] #${postId}: generating visual prompt...`);
+  const visualPrompt = await generateVisualPrompt(post.body, post.title);
+  console.log(`[ImageGen] #${postId}: "${visualPrompt.slice(0, 120)}..."`);
 
+  // Step 2: Generate image via Nano Banana
   try {
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
@@ -45,7 +63,7 @@ export async function generateImageForPost(postId: number): Promise<string | nul
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: [{ text: visualPrompt }] }],
           generationConfig: { responseModalities: ['image', 'text'] }
         })
       }

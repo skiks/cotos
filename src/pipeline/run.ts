@@ -42,7 +42,7 @@ Weights: novelty=0.18, practical=0.22, wow=0.15, money=0.18, credibility=0.17, p
 
 const REWRITE_PROMPT = `Ты пишешь пост для Telegram-канала @cotos.
 
-Автор: Алён. Шарит в AI/IT, пишет не как задрот и не как корпоративный блог.
+Автор: Алён. Курирует AI/IT новости, а не запускает продукты. Никаких "мы запустили" или "я сделал". Правильно: "разрабы выкатили", "ребята сделали", "компания X запустила".
 Стиль: умный, уверенный, живой, немного дерзкий, простыми словами.
 Аудитория: друзья, предприниматели, обычные люди, фаундеры, ребята с Бали.
 
@@ -126,7 +126,7 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
   const response = await client.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: 'Ты — Алён. Айтишник с Бали. Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
+      { role: 'system', content: 'Ты — Алён. Куратор AI/IT новостей с Бали. Ты не запускаешь продукты, ты про них пишешь. "Разрабы сделали", "компания выкатила" — твой стиль. Не "мы запустили". Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
       { role: 'user', content: prompt },
     ],
     temperature: 0.8,
@@ -178,7 +178,7 @@ export async function processItem(rawId: number) {
     JSON.stringify(classification.tags || []),
     scores.novelty, scores.practical_value, scores.wow_effect, scores.money_potential, scores.credibility,
     scores.total_score,
-    scores.recommendation || (scores.total_score >= 5 ? 'post' : 'skip'),
+    scores.recommendation || (scores.total_score >= 3 ? 'post' : 'skip'),
     scores.reason
   );
   const processedId = Number(info.lastInsertRowid);
