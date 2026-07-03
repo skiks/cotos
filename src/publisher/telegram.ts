@@ -25,6 +25,26 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
 
   try {
     const b = getBot();
+    
+    // Try to fetch og:image from source
+    let photoUrl: string | null = null;
+    if (post.url) {
+      try {
+        const html = await fetch(post.url, { signal: AbortSignal.timeout(4000) }).then(r => r.text());
+        const m = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i);
+        photoUrl = m?.[1] || null;
+      } catch {}
+    }
+    
+    if (photoUrl) {
+      const photoMsg = await b.sendPhoto(CHANNEL_ID, photoUrl, {
+        caption: post.body,
+        parse_mode: 'Markdown',
+      });
+      db.prepare(\`UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?\`).run(photoMsg.message_id, postId);
+      return { message_id: photoMsg.message_id };
+    }
+    
     const msg = await b.sendMessage(CHANNEL_ID, post.body, {
       parse_mode: 'Markdown',
       disable_web_page_preview: false,

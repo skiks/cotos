@@ -14,10 +14,10 @@ interface RSSSource {
 const SOURCES: RSSSource[] = [
   { name: 'OpenAI Blog', url: 'https://openai.com/news/rss.xml', priority: 10 },
   { name: 'Google DeepMind', url: 'https://deepmind.google/blog/rss.xml', priority: 10 },
-  { name: 'Anthropic Blog', url: 'https://www.anthropic.com/blog/rss.xml', priority: 10 },
+  // Anthropic has no RSS — skip
   { name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', priority: 9 },
   { name: 'GitHub Blog', url: 'https://github.blog/feed/', priority: 8 },
-  { name: 'Hacker News Frontpage', url: 'https://hnrss.org/frontpage', priority: 8 },
+  { name: 'Hacker News AI', url: 'https://hnrss.org/newest?q=AI', priority: 8 },
   { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', priority: 6 },
   { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', priority: 6 },
   { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', priority: 6 },
