@@ -4,6 +4,7 @@
  */
 import OpenAI from 'openai';
 import db from '../db.js';
+import { generateImageForPost } from './image_prompts.js';
 import { attachImageToPost } from '../media/images.js';
 
 const client = new OpenAI({
@@ -195,6 +196,13 @@ export async function processItem(rawId: number) {
       INSERT INTO posts (processed_item_id, post_type, title, body, source_links, media_url, status)
       VALUES (?, 'main_news', ?, ?, ?, ?, 'draft')
     `).run(processedId, raw.title, postBody, raw.url, raw.media_url || null);
+
+    // Async: generate AI image if no source media
+    if (!raw.media_url) {
+      generateImageForPost(Number(db.prepare('SELECT last_insert_rowid()').get() as any)).then(imgUrl => {
+        if (imgUrl) db.prepare('UPDATE posts SET media_url = ? WHERE id = (SELECT MAX(id) FROM posts)').run(imgUrl);
+      }).catch(() => {});
+    }
 
     db.prepare('UPDATE raw_items SET status = ? WHERE id = ?').run('posted', rawId);
     return { action: 'post', category: classification.category, score: scores.total_score };
