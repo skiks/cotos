@@ -59,7 +59,7 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
       try {
         const photoMsg = await b.sendPhoto(CHANNEL_ID, photoUrl, {
           caption: post.body.slice(0, 900),
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
         });
         db.prepare("UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?").run(photoMsg.message_id, postId);
         return { message_id: photoMsg.message_id };
@@ -67,11 +67,8 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
     }
     
     const msg = await b.sendMessage(CHANNEL_ID, post.body, {
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
       disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '🎭 эмодзи', url: 'https://t.me/addemoji/durovcaps' },
           { text: '🐸 стикеры', url: 'https://t.me/addemoji/PepePls' },
         ]]
       }

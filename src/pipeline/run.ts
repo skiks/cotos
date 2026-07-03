@@ -125,13 +125,18 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
   const response = await client.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: 'Ты — Алён. Айтишник с Бали. Пишешь в телегу друзьям быстро с опечатками без заглавных букв. **bold** ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
+      { role: 'system', content: 'Ты — Алён. Айтишник с Бали. Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
       { role: 'user', content: prompt },
     ],
     temperature: 0.8,
     max_tokens: 400,
   });
-  return response.choices[0].message.content || '';
+  let htmlBody = response.choices[0].message.content || '';
+    // Convert markdown to HTML for Telegram
+    htmlBody = htmlBody.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    htmlBody = htmlBody.replace(/\|\|(.+?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
+    htmlBody = htmlBody.replace(/_([^_]+)_/g, '<i>$1</i>');
+    return htmlBody;
 }
 
 export async function factCheck(item: { title: string; summary_ru: string }) {

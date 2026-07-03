@@ -4,55 +4,44 @@ import db from '../db.js';
 const token = process.env.COTOS_BOT_TOKEN || '';
 if (!token) { console.log('No COTOS_BOT_TOKEN'); process.exit(1); }
 
-function escapeMarkdownV2(text: string): string {
-  return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Parse AI-generated markdown (**bold**, _italic_, ||spoiler||) into MarkdownV2-safe format
-function parseAiMarkdown(text: string): string {
+// Convert AI markdown to Telegram HTML: **text**→<b>text</b>, _text_→<i>text</i>, ||text||→<tg-spoiler>text</tg-spoiler>
+function markdownToHtml(text: string): string {
   let result = '';
   let i = 0;
-  const parts: string[] = [];
   
   while (i < text.length) {
-    // Bold: **text**
     if (text[i] === '*' && text[i+1] === '*') {
       const end = text.indexOf('**', i+2);
       if (end !== -1) {
-        parts.push(escapeMarkdownV2(result));
-        result = '';
-        parts.push('*' + text.slice(i+2, end) + '*');
+        result += '<b>' + escapeHtml(text.slice(i+2, end)) + '</b>';
         i = end + 2;
         continue;
       }
     }
-    // Italic: _text_ (but not __)
     if (text[i] === '_' && text[i+1] !== '_') {
       const end = text.indexOf('_', i+1);
-      if (end !== -1) {
-        parts.push(escapeMarkdownV2(result));
-        result = '';
-        parts.push('_' + text.slice(i+1, end) + '_');
+      if (end !== -1 && text[end-1] !== '\\') {
+        result += '<i>' + escapeHtml(text.slice(i+1, end)) + '</i>';
         i = end + 1;
         continue;
       }
     }
-    // Spoiler: ||text||
     if (text[i] === '|' && text[i+1] === '|') {
       const end = text.indexOf('||', i+2);
       if (end !== -1) {
-        parts.push(escapeMarkdownV2(result));
-        result = '';
-        parts.push('||' + text.slice(i+2, end) + '||');
+        result += '<tg-spoiler>' + escapeHtml(text.slice(i+2, end)) + '</tg-spoiler>';
         i = end + 2;
         continue;
       }
     }
-    result += text[i];
+    result += escapeHtml(text[i]);
     i++;
   }
-  parts.push(escapeMarkdownV2(result));
-  return parts.join('');
+  return result;
 }
 
 const bot = new TelegramBot(token, { polling: false });
@@ -62,12 +51,12 @@ if (!post) { console.log('No drafts in queue'); process.exit(0); }
 
 console.log('Posting:', post.title.slice(0, 60) + '...');
 
-const body = parseAiMarkdown(post.body);
+const body = markdownToHtml(post.body);
 
-const opts: any = { parse_mode: 'MarkdownV2' };
+const opts: any = { parse_mode: 'HTML' };
 if (post.media_url) {
   try {
-    await bot.sendPhoto('@cotos', post.media_url, { caption: body, parse_mode: 'MarkdownV2' });
+    await bot.sendPhoto('@cotos', post.media_url, { caption: body, parse_mode: 'HTML' });
     console.log('Posted with image!');
   } catch {
     // Fallback to text-only if image fails

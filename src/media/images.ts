@@ -34,67 +34,47 @@ export async function fetchSourceImage(url: string): Promise<string | null> {
 }
 
 // ─── Tier 2+3: Smart AI image prompt based on post content ───
-export function buildImagePrompt(post: {
+
+// ─── Smart image prompt from post content ───
+export function buildSmartPrompt(post: {
   title: string;
   body: string;
   category: string;
-  tags: string[];
   summary: string;
 }): string {
-  const lower = (post.body + ' ' + post.title + ' ' + post.summary).toLowerCase();
+  const text = (post.body + ' ' + post.title + ' ' + post.summary).toLowerCase();
   
-  // Detect content type for contextual prompt
-  if (lower.includes('benchmark') || lower.includes('%') || lower.includes('сравнен') || lower.includes('график')) {
-    return `infographic style comparison chart about ${post.title.slice(0,80)}. clean minimal design. dark theme. numbers and labels visible. no faces. professional tech style.`;
+  // Extract key entities
+  const companies = text.match(/\b(openai|google|meta|anthropic|microsoft|apple|mistral|deepseek|nvidia|tesla|xai)\b/gi) || [];
+  const topics = text.match(/\b(ai|llm|agent|coding|robot|model|chip|video|image|voice|code|app|api|benchmark|security|privacy)\b/gi) || [];
+  
+  // Build prompt from keywords
+  let prompt = '';
+  
+  if (companies.length > 0) {
+    prompt += companies.slice(0, 2).join(' and ') + ' ';
   }
   
-  if (lower.includes('фото') || lower.includes('изображен') || lower.includes('картинк') || lower.includes('image quality') || lower.includes('разрешен')) {
-    return `split comparison: left side low quality blurry image, right side sharp high quality image. label "до" and "после". ${post.category} technology concept.`;
+  if (topics.length > 0) {
+    prompt += topics.slice(0, 3).join(' ') + ' ';
   }
   
-  if (post.category === 'fakecheck') {
-    return `minimalist fact-check illustration. magnifying glass over text. red and green markers. clean dark background. no faces.`;
-  }
+  // Category-specific style
+  const styles: Record<string, string> = {
+    fakecheck: 'fact check illustration with magnifying glass',
+    money: 'business growth chart with tech elements',
+    research: 'scientific abstract visualization',
+    robots: 'futuristic robot design',
+    security: 'cybersecurity shield and lock',
+    dev: 'code editor with AI autocomplete',
+    models: 'neural network abstract visualization',
+    tools: 'clean SaaS product interface',
+  };
   
-  if (post.category === 'money' || post.category === 'business') {
-    return `modern business tech illustration about ${post.title.slice(0,60)}. upward trend line. clean corporate style. dark background. no faces.`;
-  }
+  prompt += styles[post.category] || 'modern tech abstract';
+  prompt += '. professional quality. no text overlay.';
   
-  if (post.category === 'security') {
-    return `cybersecurity concept illustration. shield with lock. dark background. glowing lines. professional.`;
-  }
-  
-  if (post.category === 'robots') {
-    return `futuristic robot illustration. sleek design. ${post.title.slice(0,60)}. dark sci-fi background.`;
-  }
-  
-  // Default: contextual based on title
-  return `modern tech illustration for article about ${post.title.slice(0,80)}. ${post.category} concept. clean style. dark background. no text overlay. professional.`;
-}
-
-// ─── Main: Get best image for post ───
-export async function getPostImage(post: {
-  id: number;
-  title: string;
-  body: string;
-  category: string;
-  tags: string[];
-  summary: string;
-  sourceUrl: string;
-}): Promise<{ type: 'source' | 'video' | 'ai' | 'none'; url?: string; prompt?: string }> {
-  
-  // 1. Try source image/video first
-  const sourceImg = await fetchSourceImage(post.sourceUrl);
-  if (sourceImg) {
-    if (sourceImg.startsWith('video:')) {
-      return { type: 'video', url: sourceImg.replace('video:', '') };
-    }
-    return { type: 'source', url: sourceImg };
-  }
-  
-  // 2. Generate contextual AI image prompt
-  const prompt = buildImagePrompt(post);
-  return { type: 'ai', prompt };
+  return prompt;
 }
 
 export function imagePrompt(postTitle: string, category: string): string {
