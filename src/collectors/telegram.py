@@ -11,12 +11,12 @@ from telethon import TelegramClient
 from telethon.errors import ChannelPrivateError, FloodWaitError
 
 # ─── Config ──────────────────────────────────────────────────
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SESSION = os.path.expanduser("~/.tg-bridge-session")
 API_ID = int(os.environ.get("TELEGRAM_API_ID", "35895989"))
 API_HASH = os.environ.get("TELEGRAM_API_HASH", "6c2709203cf56359e0d08988170ade1a")
-DB_PATH = os.path.join(PROJECT_ROOT, "..", "data", "cotos.db")
-SOURCES_YAML = os.path.join(PROJECT_ROOT, "..", "config", "sources.yaml")
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "cotos.db")
+SOURCES_YAML = os.path.join(PROJECT_ROOT, "config", "sources.yaml")
 
 MSG_LIMIT = 3  # messages per channel per run
 

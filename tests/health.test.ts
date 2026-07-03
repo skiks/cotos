@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { app } from '../src/index.js';
+import { app } from '../src/server.js';
 
 describe('Health endpoint', () => {
   beforeAll(async () => {

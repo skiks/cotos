@@ -164,7 +164,7 @@ export async function processItem(rawId: number) {
     (raw_item_id, summary, category, tags, novelty_score, practical_score, wow_score, money_score, credibility_score, total_score, recommendation, reason)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  insert.run(
+  const info = insert.run(
     rawId,
     classification.summary_ru,
     classification.category,
@@ -174,6 +174,7 @@ export async function processItem(rawId: number) {
     scores.recommendation || (scores.total_score >= 8 ? 'post' : 'skip'),
     scores.reason
   );
+  const processedId = Number(info.lastInsertRowid);
 
   // 5. Rewrite if score >= 8
   if (scores.total_score >= 8 && facts.risk_level !== 'high') {
@@ -187,7 +188,7 @@ export async function processItem(rawId: number) {
     db.prepare(`
       INSERT INTO posts (processed_item_id, post_type, title, body, source_links, status)
       VALUES (?, 'main_news', ?, ?, ?, 'draft')
-    `).run(rawId, raw.title, postBody, raw.url);
+    `).run(processedId, raw.title, postBody, raw.url);
 
     return { action: 'post', category: classification.category, score: scores.total_score };
   }

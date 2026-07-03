@@ -66,6 +66,26 @@ db.exec(`
     url_hash TEXT UNIQUE,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS analytics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER REFERENCES posts(id),
+    telegram_message_id INTEGER,
+    views INTEGER DEFAULT 0,
+    forwards INTEGER DEFAULT 0,
+    reactions INTEGER DEFAULT 0,
+    collected_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS community_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER REFERENCES posts(id),
+    task_type TEXT,
+    suggested_text TEXT,
+    scheduled_at TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 export default db;
