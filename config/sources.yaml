@@ -1,0 +1,48 @@
+# COTOS — Telegram AI/IT News Sources
+# Format: username, priority (1-10), category_hint
+
+russian:
+  - { username: "hiaimedia", priority: 10, hint: "models" }
+  - { username: "gpt_chat", priority: 9, hint: "tools" }
+  - { username: "neuro_channel", priority: 9, hint: "tools" }
+  - { username: "ai_machinelearning_big_data", priority: 8, hint: "research" }
+  - { username: "v_neuro", priority: 8, hint: "models" }
+  - { username: "llm_under_hood", priority: 9, hint: "business" }
+  - { username: "prog_ai", priority: 8, hint: "dev" }
+  - { username: "ict_moscow_ai", priority: 7, hint: "models" }
+  - { username: "ai_ud", priority: 6, hint: "research" }
+  - { username: "ainewsrobotika", priority: 7, hint: "robots" }
+  - { username: "devsday", priority: 7, hint: "dev" }
+  - { username: "forgeeks", priority: 6, hint: "dev" }
+  - { username: "tproger", priority: 7, hint: "dev" }
+  - { username: "thecode_media", priority: 5, hint: "dev" }
+  - { username: "tginfo", priority: 6, hint: "dev" }
+  - { username: "addmeto", priority: 5, hint: "tools" }
+  - { username: "startup_of_the_day", priority: 6, hint: "money" }
+  - { username: "producthunt", priority: 5, hint: "tools" }
+  - { username: "ainewsru", priority: 7, hint: "models" }
+  - { username: "startapnaya", priority: 6, hint: "money" }
+  - { username: "productradar_official", priority: 5, hint: "money" }
+
+english:
+  - { username: "aipost", priority: 9, hint: "models" }
+  - { username: "AI_DeepLearning", priority: 7, hint: "research" }
+  - { username: "genaimon", priority: 8, hint: "tools" }
+  - { username: "tldr_ai", priority: 8, hint: "models" }
+  - { username: "therundownai", priority: 9, hint: "models" }
+  - { username: "aibreakfast", priority: 7, hint: "tools" }
+  - { username: "artificialintelligence", priority: 8, hint: "models" }
+  - { username: "ml_news", priority: 7, hint: "research" }
+  - { username: "huggingface", priority: 9, hint: "models" }
+  - { username: "langchain", priority: 7, hint: "dev" }
+  - { username: "cursorai", priority: 8, hint: "dev" }
+  - { username: "perplexityai", priority: 8, hint: "tools" }
+  - { username: "aisafetyinfo", priority: 7, hint: "security" }
+  - { username: "techcrunch", priority: 6, hint: "business" }
+  - { username: "verge", priority: 5, hint: "business" }
+  - { username: "openai", priority: 10, hint: "models" }
+  - { username: "anthropic", priority: 10, hint: "models" }
+  - { username: "google_deepmind", priority: 9, hint: "research" }
+  - { username: "metaai", priority: 8, hint: "models" }
+  - { username: "indiehackers", priority: 5, hint: "money" }
+  - { username: "producthunt", priority: 5, hint: "tools" }
