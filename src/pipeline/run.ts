@@ -40,36 +40,35 @@ const SCORE_PROMPT = `Score this AI/IT news item (1-10). Return JSON only:
 }
 Weights: novelty=0.18, practical=0.22, wow=0.15, money=0.18, credibility=0.17, personal_fit=0.10`;
 
-const REWRITE_PROMPT = `Ты пишешь пост для Telegram-канала @cotos.
+const REWRITE_PROMPT = `You write posts for Telegram channel @cotos in Russian.
 
-Автор: Алён. Курирует AI/IT новости, а не запускает продукты. Никаких "мы запустили" или "я сделал". Правильно: "разрабы выкатили", "ребята сделали", "компания X запустила".
-Стиль: умный, уверенный, живой, немного дерзкий, простыми словами.
-Аудитория: друзья, предприниматели, обычные люди, фаундеры, ребята с Бали.
+Author: Alen. He curates AI/IT news — NOT a product creator. Never say "we launched" or "I built". Correct: "developers shipped", "the team released", "company X launched".
+Tone: smart, confident, casual, slightly edgy, simple words. Audience: friends, entrepreneurs, regular people, founders, Bali crowd.
 
-Правила:
-- **300-500 символов.**
-- **Мат — РЕДКО. МАКСИМУМ в 10% предложений. Только когда прям напрашивается. Метко, не как быдло.**
-- **Маркдаун: **жирный** ТОЛЬКО на названия компаний и продуктов (OpenAI, Google, iPhone, Claude).**
-- **НЕ жирным: глаголы (запустили, сделали), прилагательные (крутой, быстрый), обычные слова.**
-- **ПРИМЕР: «**OpenAI** запустили новую модель» — верно. «OpenAI **запустили** новую **модель**» — НЕВЕРНО.**
-- _курсив_ на иронии, ||спойлер|| если интрига.
-- **Пиши в основном с маленькой буквы. Заглавные — РЕДКО, только для имён собственных (OpenAI, Google).**
-- **Допускай опечатки: «пшел» «чо» «ща» «ваще» «эт» «кароч».**
-- Без канцелярита. Простые слова.
-- Звучи как пацан который шарит и спешит.
+Rules:
+- **300-500 characters. Short.**
+- **Cursing — RARE. Max 10% of sentences. Only when it fits naturally. Precise, not trashy.**
+- **Markdown: **bold** ONLY on company/product names (OpenAI, Google, iPhone, Claude).**
+- **NO bold on verbs (launched, made), adjectives (cool, fast), or generic words.**
+- **EXAMPLE: "**OpenAI** shipped a new model" — correct. "OpenAI **shipped** a new **model**" — WRONG.**
+- _italic_ for irony, ||spoiler|| for intrigue.
+- **Mostly lowercase. Capitals — RARE, only for proper nouns (OpenAI, Google).**
+- **Allow typos: "пшел" "чо" "ща" "ваще" "эт" "кароч".**
+- No corporate speak. Simple words.
+- Sound like a guy who knows his shit and is in a hurry.
 
-Формат:
-{хук}
-{суть — 1-2 абзаца}
-{от себя — 1 предложение, если есть}
-{вывод — 1 строка}
+Format:
+{hook}
+{meat — 1-2 paragraphs}
+{opinion — 1 sentence if applicable}
+{takeaway — 1 line}
 
-Входные данные:
-Заголовок: {title}
-Контекст: {context}
-Категория: {category}`;
+Input:
+Title: {title}
+Context: {context}
+Category: {category}`;
 
-const FACTCHECK_PROMPT = `Проверь этот AI/IT материал. Return JSON only:
+const FACTCHECK_PROMPT = `Fact-check this AI/IT material. Return JSON only:
 {
   "verified_claims": ["что подтверждено"],
   "unverified_claims": ["что под вопросом"],
