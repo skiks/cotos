@@ -71,12 +71,10 @@ async function processNewItems() {
 async function collectAndProcess() {
   console.log('\n📡 Collecting news...');
 
-  const [rssResult] = await Promise.all([
-    collectAll(),
-    collectTelegram(),
-  ]);
+  const rssResult = await collectAll();
+  await collectTelegram();
 
-  console.log(`RSS: +${rssResult.added} items`);
+  console.log(`Collected: RSS +${rssResult.added}, TG done`);
 
   const newCount = (db.prepare(`SELECT COUNT(*) as c FROM raw_items WHERE status = 'new'`).get() as any)?.c || 0;
   if (newCount > 0) {

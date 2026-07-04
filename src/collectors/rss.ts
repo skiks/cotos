@@ -36,7 +36,9 @@ function isFresh(publishedAt: string): boolean {
 async function collectSource(source: RSSSource): Promise<number> {
   let added = 0;
   try {
-    const feed = await parser.parseURL(source.url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const feed = await parser.parseURL({ url: source.url, signal: controller.signal } as any).finally(() => clearTimeout(timeout));
     const insert = db.prepare(`
       INSERT OR IGNORE INTO raw_items (source_name, external_id, url, title, raw_text, author, published_at, hash)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -56,6 +58,10 @@ async function collectSource(source: RSSSource): Promise<number> {
       if (result.changes > 0) added++;
     }
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.error(`[RSS] ${source.name}: timeout`);
+      return 0;
+    }
     console.error(`[RSS] ${source.name}: ${err.message}`);
   }
   return added;
