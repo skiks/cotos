@@ -99,9 +99,7 @@ export async function tick(): Promise<{ published: number; skipped: number }> {
 export function startScheduler() {
   console.log(`⏰ Scheduler started (${TIMEZONE}), slots: ${SLOTS.map(s => s.time).join(', ')}`);
 
-  // Check immediately on start
-  tick();
-
-  // Then every minute
+  // Do NOT publish on startup — wait for the next slot
+  // Then check every minute
   setInterval(tick, 60_000);
 }
