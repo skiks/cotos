@@ -69,9 +69,6 @@ export async function publishPost(postId: number): Promise<{ message_id: number 
     const msg = await b.sendMessage(CHANNEL_ID, post.body, {
       parse_mode: 'HTML',
       disable_web_page_preview: true,
-          { text: '🐸 стикеры', url: 'https://t.me/addemoji/PepePls' },
-        ]]
-      }
     });
 
     db.prepare(`
