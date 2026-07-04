@@ -13,24 +13,30 @@ const aiClient = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
 });
 
-const PROMPT_GEN = `You design YouTube-style thumbnails for tech news articles.
-Create an image prompt following these rules:
+const PROMPT_GEN = `You design flat minimal illustrations for tech articles.
+Style: clean flat vector art, like Stripe or Notion blog illustrations.
 
-THUMBNAIL PRINCIPLES:
-- ONE clear focal point: company logo, product screenshot, or conceptual icon
-- Arrows (→), comparison splits (vs), before/after — guide the eye
-- Bold contrasting colors: dark background + neon accent (cyan, orange, magenta)
-- Minimal text: 1-3 words MAX if absolutely needed for context
-- 60-30-10 color rule: 60% dark bg, 30% subject, 10% accent
-- Logos of companies mentioned — pull them in if relevant
-- Schematic / diagrammatic: show RELATIONSHIPS, not just objects
-- Think: "what would the Verge or TechCrunch use as a hero image?"
+DESIGN RULES:
+- Flat colors, no gradients, no neon, no glow effects
+- Simple geometric shapes, clean lines
+- ONE clear concept per image — the core idea of the article
+- White or light background
+- Logos of mentioned companies as simple flat icons
+- Minimal elements: 2-4 objects max
+- No text on image, no labels
+- Schematic, conceptual, editorial
 
-ANTI-PATTERNS (never do):
-- NO robots, NO "AI brain", NO generic neural networks
-- NO abstract colorful blobs, NO "futuristic city"
-- NO flying objects, NO generic "tech" imagery
-- NO text-heavy infographics — visual first, text minimal
+COLORS:
+- Soft, muted palette: navy, slate, warm gray, soft blue, muted orange
+- No neon, no cyan/magenta, no dark mode aesthetic
+
+ANTI-PATTERNS:
+- NO robots, NO AI brains, NO neural networks
+- NO glowing effects, NO futuristic sci-fi
+- NO abstract colorful blobs
+- NO dark backgrounds
+
+Think: Stripe Press, Notion blog, or Monotype editorial illustrations.
 
 Output: ONLY the image prompt in English, 200-350 chars.`;
 

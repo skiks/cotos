@@ -1,106 +1,150 @@
 /**
- * COTOS Telegram Publisher
- * Publishes posts to @cotos channel via Telegram Bot API
+ * COTOS Telegram Publisher — always sends photo + HTML caption
+ * Image priority: source og:image → Nano Banana generation
  */
 import TelegramBot from 'node-telegram-bot-api';
 import db from '../db.js';
 
-function getBotToken() { return process.env['COTOS_BOT_TOKEN'] || '' };
-function getChannelId() { return process.env['COTOS_CHANNEL_ID'] || '@cotos' };
+function getBotToken() { return process.env['COTOS_BOT_TOKEN'] || '' }
+function getChannelId() { return process.env['COTOS_CHANNEL_ID'] || '@cotos' }
+function getGeminiKey() { return process.env['GEMINI_API_KEY'] || '' }
 
 let bot: TelegramBot | null = null;
-
-
-// ─── Custom Emoji Packs ─────────────────────────────────────
-const CUSTOM_EMOJI_PACKS = [
-  'https://t.me/addemoji/durovcaps',
-  'https://t.me/addemoji/PepePls',
-  'https://t.me/addemoji/borisovatel',
-  'https://t.me/addemoji/wtc',
-  'https://t.me/addstickers/FunnyCats',
-];
-
-function addCustomEmojiFooter(body: string): string {
-  const pack = CUSTOM_EMOJI_PACKS[Math.floor(Math.random() * CUSTOM_EMOJI_PACKS.length)];
-  return body + `
-
-[🔥 эмодзи-пак](${pack})`;
-}
-
 function getBot(): TelegramBot {
   if (!bot) {
-    const token = getBotToken(); if (!token) throw new Error('COTOS_BOT_TOKEN not set');
-    bot = new TelegramBot(token, { polling: false });
+    const t = getBotToken();
+    if (!t) throw new Error('COTOS_BOT_TOKEN not set');
+    bot = new TelegramBot(t, { polling: false });
   }
   return bot;
 }
 
-export async function publishPost(postId: number): Promise<{ message_id: number } | null> {
-  interface PostRow { id: number; body: string; status: string; url: string; [key: string]: any; }
-  const post = db.prepare('SELECT p.*, ri.url FROM posts p LEFT JOIN processed_items pi ON p.processed_item_id = pi.id LEFT JOIN raw_items ri ON pi.raw_item_id = ri.id WHERE p.id = ?').get(postId) as PostRow;
+async function fetchSourceImage(url: string): Promise<Buffer | null> {
+  if (!url) return null;
+  try {
+    const html = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(5000),
+    }).then(r => r.text());
+    const m = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)
+           || html.match(/<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"/i);
+    if (m) {
+      const imgUrl = m[1].replace(/&amp;/g, '&');
+      const imgResp = await fetch(imgUrl, { signal: AbortSignal.timeout(10000) });
+      return Buffer.from(await imgResp.arrayBuffer());
+    }
+  } catch {}
+  return null;
+}
+
+async function generateAIImage(prompt: string): Promise<Buffer | null> {
+  const key = getGeminiKey();
+  if (!key) return null;
+  try {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-image:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+        }),
+        signal: AbortSignal.timeout(25000),
+      }
+    );
+    const data = await resp.json() as any;
+    for (const part of data?.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData?.data) {
+        return Buffer.from(part.inlineData.data, 'base64');
+      }
+    }
+  } catch {}
+  return null;
+}
+
+async function getPostImage(post: any): Promise<{ buffer: Buffer; source: string } | null> {
+  // 1. Try source og:image
+  if (post.url) {
+    const img = await fetchSourceImage(post.url);
+    if (img) return { buffer: img, source: 'source' };
+  }
+  
+  // 2. Generate via Nano Banana
+  const summary = post.summary || post.title || '';
+  const prompt = `flat vector illustration. minimal design. muted colors. simple shapes. white background. ${summary.slice(0, 120)}`;
+  const aiImg = await generateAIImage(prompt);
+  if (aiImg) return { buffer: aiImg, source: 'nano_banana' };
+  
+  return null;
+}
+
+export async function publishPost(postId: number): Promise<{ message_id: number; image_source: string } | null> {
+  const post = db.prepare(`
+    SELECT p.*, pi.summary, ri.url, ri.title
+    FROM posts p
+    LEFT JOIN processed_items pi ON p.processed_item_id = pi.id
+    LEFT JOIN raw_items ri ON pi.raw_item_id = ri.id
+    WHERE p.id = ?
+  `).get(postId) as any;
+
   if (!post) throw new Error(`Post ${postId} not found`);
   if (post.status === 'posted') return null;
 
-  try {
-    const b = getBot();
-    
-    // Fetch og:image from source URL
-    let photoUrl: string | null = null;
-    if (post.url) {
-      try {
-        const html = await fetch(post.url, { signal: AbortSignal.timeout(4000) }).then((r: Response) => r.text());
-        const ogMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i);
-        const twMatch = html.match(/<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"/i);
-        photoUrl = ogMatch?.[1] || twMatch?.[1] || null;
-      } catch { /* timeout ok */ }
+  const b = getBot();
+  const chat = getChannelId();
+  
+  // Get image
+  const img = await getPostImage(post);
+  
+  // Clean HTML
+  let body = post.body || '';
+  body = body.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  body = body.replace(/\|\|(.+?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
+  
+  if (img) {
+    // Send as photo with HTML caption
+    try {
+      const msg = await b.sendPhoto(chat, img.buffer, {
+        caption: body.slice(0, 1024),
+        parse_mode: 'HTML',
+      }, {
+        filename: 'post.jpg',
+        contentType: 'image/jpeg',
+      });
+      
+      db.prepare(`
+        UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now')
+        WHERE id = ?
+      `).run(msg.message_id, postId);
+      
+      return { message_id: msg.message_id, image_source: img.source };
+    } catch (err: any) {
+      console.error(`[Publish] Photo failed: ${err.message}`);
     }
-    
-    if (photoUrl) {
-      try {
-        const photoMsg = await b.sendPhoto(CHANNEL_ID, photoUrl, {
-          caption: post.body.slice(0, 900),
-          parse_mode: 'HTML',
-        });
-        db.prepare("UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now') WHERE id = ?").run(photoMsg.message_id, postId);
-        return { message_id: photoMsg.message_id };
-      } catch { /* photo failed, fall back to text */ }
-    }
-    
-    const msg = await b.sendMessage(CHANNEL_ID, post.body, {
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-    });
-
-    db.prepare(`
-      UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now')
-      WHERE id = ?
-    `).run(msg.message_id, postId);
-
-    return { message_id: msg.message_id };
-  } catch (err: any) {
-    console.error(`[Publish] Failed to post #${postId}: ${err.message}`);
-    db.prepare(`UPDATE posts SET status = 'failed' WHERE id = ?`).run(postId);
-    return null;
   }
-}
-
-export async function publishNextDraft(): Promise<{ post_id: number; message_id: number } | null> {
-  const draft = db.prepare(`
-    SELECT * FROM posts WHERE status = 'draft' ORDER BY created_at ASC LIMIT 1
-  `).get() as any;
-
-  if (!draft) return null;
-
-  const result = await publishPost(draft.id);
-  return result ? { post_id: draft.id, message_id: result.message_id } : null;
+  
+  // Fallback: text only
+  const msg = await b.sendMessage(chat, body, {
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  });
+  
+  db.prepare(`
+    UPDATE posts SET status = 'posted', telegram_message_id = ?, posted_at = datetime('now')
+    WHERE id = ?
+  `).run(msg.message_id, postId);
+  
+  return { message_id: msg.message_id, image_source: 'none' };
 }
 
 export async function getQueue(): Promise<any[]> {
   return db.prepare(`
-    SELECT p.*, pi.category, pi.total_score 
-    FROM posts p 
-    LEFT JOIN processed_items pi ON p.processed_item_id = pi.id 
-    WHERE p.status = 'draft' 
+    SELECT p.*, pi.category, pi.total_score, ri.url
+    FROM posts p
+    LEFT JOIN processed_items pi ON p.processed_item_id = pi.id
+    LEFT JOIN raw_items ri ON pi.raw_item_id = ri.id
+    WHERE p.status = 'draft'
     ORDER BY pi.total_score DESC, p.created_at ASC
   `).all();
 }
