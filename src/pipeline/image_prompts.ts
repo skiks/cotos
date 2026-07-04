@@ -13,19 +13,26 @@ const aiClient = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
 });
 
-const PROMPT_GEN = `You are an editorial illustrator for The Verge / TechCrunch.
-Create a DETAILED image prompt based ONLY on the article content.
+const PROMPT_GEN = `You design YouTube-style thumbnails for tech news articles.
+Create an image prompt following these rules:
 
-CRITICAL RULES:
-- Prefer SCHEMATIC or DIAGRAMMATIC style: flowcharts, comparisons, architecture diagrams, before/after visuals
-- If the article has DATA (costs, percentages, benchmarks) — show that visually
-- If it's about a PRODUCT — show the product concept or UI mockup
-- If it's about a TREND — show a comparison or timeline
-- NO generic "AI", "robot", "futuristic tech", "neural network", "flying object"
-- Think: what would an INFOGRAPHIC for this article look like?
-- Dark minimalist style. No text labels. 200-350 chars English.
+THUMBNAIL PRINCIPLES:
+- ONE clear focal point: company logo, product screenshot, or conceptual icon
+- Arrows (→), comparison splits (vs), before/after — guide the eye
+- Bold contrasting colors: dark background + neon accent (cyan, orange, magenta)
+- Minimal text: 1-3 words MAX if absolutely needed for context
+- 60-30-10 color rule: 60% dark bg, 30% subject, 10% accent
+- Logos of companies mentioned — pull them in if relevant
+- Schematic / diagrammatic: show RELATIONSHIPS, not just objects
+- Think: "what would the Verge or TechCrunch use as a hero image?"
 
-Output: ONLY the image prompt, nothing else.`;
+ANTI-PATTERNS (never do):
+- NO robots, NO "AI brain", NO generic neural networks
+- NO abstract colorful blobs, NO "futuristic city"
+- NO flying objects, NO generic "tech" imagery
+- NO text-heavy infographics — visual first, text minimal
+
+Output: ONLY the image prompt in English, 200-350 chars.`;
 
 export async function generateVisualPrompt(postBody: string, title: string): Promise<string> {
   const response = await aiClient.chat.completions.create({

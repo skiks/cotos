@@ -149,29 +149,33 @@ export async function factCheck(item: { title: string; summary_ru: string }) {
 function buildLiteralImagePrompt(item: { title: string; summary: string; category: string }): string {
   const text = (item.summary + ' ' + item.title).toLowerCase();
   
-  // SCHEMATIC / INFOGRAPHIC style — show the CONCEPT, not a photo
-  const style = 'schematic infographic style. clean. minimal. dark background. show the concept. no photorealistic. no faces. no sci-fi.';
+  // Extract company names from title for logos
+  const companies = (item.title.match(/\b(OpenAI|Google|Meta|Anthropic|Microsoft|Apple|Mistral|DeepSeek|Nvidia|Tesla|xAI|Claude|GPT|Gemini|Nous|HuggingFace)\b/gi) || []).join(', ');
+  const logoText = companies ? `company logos: ${companies}. ` : '';
   
-  if (text.includes('api') || text.includes('code') || text.includes('github')) {
-    return `code architecture diagram showing how ${item.title.slice(0,50)} works. ${style}`;
+  // YouTube thumbnail style: dark bg + bright accents + arrows + schematic
+  const style = 'YouTube thumbnail style. dark background. bright accent colors (electric blue, neon yellow). high contrast. schematic. arrows and callouts. clean. modern. no photorealistic faces. no text.';
+  
+  if (text.includes('vs') || text.includes('compar') || text.includes('benchmark') || text.includes('against')) {
+    return `split screen comparison layout. ${logoText}left vs right. dramatic lighting contrast. arrow between sides. ${style}`;
   }
-  if (text.includes('benchmark') || text.includes('comparison') || text.includes('vs')) {
-    return `comparison chart: ${item.title.slice(0,60)}. bar chart or table. ${style}`;
+  if (text.includes('model') || text.includes('llm') || text.includes('gpt') || text.includes('claude')) {
+    return `AI model showdown. ${logoText}neural network diagram with arrows. model architecture. sticker-effect. ${style}`;
   }
-  if (text.includes('model') || text.includes('llm') || text.includes('gpt')) {
-    return `neural network architecture diagram. layers and data flow. ${item.title.slice(0,40)}. ${style}`;
+  if (text.includes('api') || text.includes('code') || text.includes('github') || text.includes('dev')) {
+    return `code editor screenshot effect. ${logoText}terminal window with glow. sticker overlay. arrows pointing to key elements. ${style}`;
   }
-  if (text.includes('security') || text.includes('hack')) {
-    return `security vulnerability diagram. attack flow. ${item.title.slice(0,50)}. ${style}`;
+  if (text.includes('chip') || text.includes('hardware') || text.includes('processor')) {
+    return `tech product showcase. ${logoText}chip on dark surface. dramatic spotlight. ${style}`;
   }
-  if (text.includes('startup') || text.includes('funding') || text.includes('million') || text.includes('billion')) {
-    return `business chart: growth trend. money flow. ${item.title.slice(0,50)}. ${style}`;
+  if (text.includes('security') || text.includes('hack') || text.includes('vulnerab')) {
+    return `cybersecurity alert. ${logoText}shield icon with warning glow. red and blue contrast. arrow showing attack flow. ${style}`;
   }
-  if (text.includes('app') || text.includes('product') || text.includes('launch')) {
-    return `product feature overview. simple diagram. ${item.title.slice(0,50)}. ${style}`;
+  if (text.includes('money') || text.includes('funding') || text.includes('billion') || text.includes('million')) {
+    return `financial chart. ${logoText}upward trend arrow. dark bg with green/yellow accents. ${style}`;
   }
   
-  return `concept diagram explaining: ${item.summary.slice(0,120)}. ${style}`;
+  return `tech news graphic. ${logoText}concept illustration with arrows and callouts. ${style}`;
 }
 
 // ─── FULL PIPELINE ─────────────────────────────────────────────
