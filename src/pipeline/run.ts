@@ -87,7 +87,7 @@ async function aiCall(systemPrompt: string, userContent: string): Promise<any> {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent },
     ],
-    temperature: 0.7,
+    temperature: 0.7,  // locked for style consistency
     response_format: { type: 'json_object' },
   });
   return JSON.parse(response.choices[0].message.content || '{}');
@@ -142,6 +142,44 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
 export async function factCheck(item: { title: string; summary_ru: string }) {
   const result = await aiCall(FACTCHECK_PROMPT, `Title: ${item.title}\nSummary: ${item.summary_ru}`);
   return result;
+}
+
+
+// ─── LITERAL Image Prompt ────────────────────────────────────
+function buildLiteralImagePrompt(item: { title: string; summary: string; category: string }): string {
+  const text = (item.summary + ' ' + item.title).toLowerCase();
+  
+  // DETECT what the article is ABOUT and describe THAT specifically
+  if (text.includes('api') || text.includes('sdk') || text.includes('library') || text.includes('code') || text.includes('github')) {
+    return `a developer workspace with code editor showing ${item.title.slice(0,60)}. terminal window. dark mode. realistic.`;
+  }
+  if (text.includes('chip') || text.includes('processor') || text.includes('hardware') || text.includes('device')) {
+    return `product photo of ${item.title.slice(0,60)}. clean white background. realistic tech product shot.`;
+  }
+  if (text.includes('robot') || text.includes('drone') || text.includes('hardware')) {
+    return `realistic photo of ${item.title.slice(0,70)}. real environment. not sci-fi.`;
+  }
+  if (text.includes('app') || text.includes('interface') || text.includes('design') || text.includes('ui')) {
+    return `clean app interface screenshot style showing ${item.title.slice(0,60)}. minimal. modern.`;
+  }
+  if (text.includes('model') || text.includes('llm') || text.includes('gpt') || text.includes('claude')) {
+    return `abstract neural network visualization representing ${item.title.slice(0,70)}. dark background. data flow.`;
+  }
+  if (text.includes('security') || text.includes('hack') || text.includes('vulnerability')) {
+    return `cybersecurity concept: ${item.title.slice(0,70)}. code on screen with red warning. realistic.`;
+  }
+  if (text.includes('startup') || text.includes('funding') || text.includes('billion') || text.includes('million')) {
+    return `business chart showing growth. money and tech theme. ${item.title.slice(0,50)}. clean.`;
+  }
+  if (text.includes('video') || text.includes('image') || text.includes('generation') || text.includes('photo')) {
+    return `before/after comparison: AI generated vs real. ${item.title.slice(0,60)}. split screen.`;
+  }
+  if (text.includes('benchmark') || text.includes('comparison') || text.includes('vs')) {
+    return `comparison chart or table. ${item.title.slice(0,60)}. clean infographic style.`;
+  }
+  
+  // Fallback: describe what the article is literally about
+  return `visual representation of: ${item.summary.slice(0,150)}. realistic. editorial. no sci-fi.`;
 }
 
 // ─── FULL PIPELINE ─────────────────────────────────────────────

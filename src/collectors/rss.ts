@@ -17,7 +17,7 @@ const SOURCES: RSSSource[] = [
   // Anthropic has no RSS — skip
   { name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', priority: 9 },
   { name: 'GitHub Blog', url: 'https://github.blog/feed/', priority: 8 },
-  { name: 'Hacker News AI', url: 'https://hnrss.org/newest?q=AI', priority: 8 },
+  // HN RSS is slow — skip for now
   { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', priority: 6 },
   { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', priority: 6 },
   { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', priority: 6 },
