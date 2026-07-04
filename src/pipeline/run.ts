@@ -125,7 +125,7 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
   const response = await client.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: 'Ты — Алён. Куратор AI/IT новостей с Бали. Ты не запускаешь продукты, ты про них пишешь. "Разрабы сделали", "компания выкатила" — твой стиль. Не "мы запустили". Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
+      { role: 'system', content: 'Ты — Алён. Куратор AI/IT с Бали. Output HTML: <b>company names</b>, <tg-spoiler>jokes</tg-spoiler>. No markdown **. Ты не запускаешь продукты, ты про них пишешь. "Разрабы сделали", "компания выкатила" — твой стиль. Не "мы запустили". Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
       { role: 'user', content: prompt },
     ],
     temperature: 0.8,
@@ -149,37 +149,29 @@ export async function factCheck(item: { title: string; summary_ru: string }) {
 function buildLiteralImagePrompt(item: { title: string; summary: string; category: string }): string {
   const text = (item.summary + ' ' + item.title).toLowerCase();
   
-  // DETECT what the article is ABOUT and describe THAT specifically
-  if (text.includes('api') || text.includes('sdk') || text.includes('library') || text.includes('code') || text.includes('github')) {
-    return `a developer workspace with code editor showing ${item.title.slice(0,60)}. terminal window. dark mode. realistic.`;
-  }
-  if (text.includes('chip') || text.includes('processor') || text.includes('hardware') || text.includes('device')) {
-    return `product photo of ${item.title.slice(0,60)}. clean white background. realistic tech product shot.`;
-  }
-  if (text.includes('robot') || text.includes('drone') || text.includes('hardware')) {
-    return `realistic photo of ${item.title.slice(0,70)}. real environment. not sci-fi.`;
-  }
-  if (text.includes('app') || text.includes('interface') || text.includes('design') || text.includes('ui')) {
-    return `clean app interface screenshot style showing ${item.title.slice(0,60)}. minimal. modern.`;
-  }
-  if (text.includes('model') || text.includes('llm') || text.includes('gpt') || text.includes('claude')) {
-    return `abstract neural network visualization representing ${item.title.slice(0,70)}. dark background. data flow.`;
-  }
-  if (text.includes('security') || text.includes('hack') || text.includes('vulnerability')) {
-    return `cybersecurity concept: ${item.title.slice(0,70)}. code on screen with red warning. realistic.`;
-  }
-  if (text.includes('startup') || text.includes('funding') || text.includes('billion') || text.includes('million')) {
-    return `business chart showing growth. money and tech theme. ${item.title.slice(0,50)}. clean.`;
-  }
-  if (text.includes('video') || text.includes('image') || text.includes('generation') || text.includes('photo')) {
-    return `before/after comparison: AI generated vs real. ${item.title.slice(0,60)}. split screen.`;
+  // SCHEMATIC / INFOGRAPHIC style — show the CONCEPT, not a photo
+  const style = 'schematic infographic style. clean. minimal. dark background. show the concept. no photorealistic. no faces. no sci-fi.';
+  
+  if (text.includes('api') || text.includes('code') || text.includes('github')) {
+    return `code architecture diagram showing how ${item.title.slice(0,50)} works. ${style}`;
   }
   if (text.includes('benchmark') || text.includes('comparison') || text.includes('vs')) {
-    return `comparison chart or table. ${item.title.slice(0,60)}. clean infographic style.`;
+    return `comparison chart: ${item.title.slice(0,60)}. bar chart or table. ${style}`;
+  }
+  if (text.includes('model') || text.includes('llm') || text.includes('gpt')) {
+    return `neural network architecture diagram. layers and data flow. ${item.title.slice(0,40)}. ${style}`;
+  }
+  if (text.includes('security') || text.includes('hack')) {
+    return `security vulnerability diagram. attack flow. ${item.title.slice(0,50)}. ${style}`;
+  }
+  if (text.includes('startup') || text.includes('funding') || text.includes('million') || text.includes('billion')) {
+    return `business chart: growth trend. money flow. ${item.title.slice(0,50)}. ${style}`;
+  }
+  if (text.includes('app') || text.includes('product') || text.includes('launch')) {
+    return `product feature overview. simple diagram. ${item.title.slice(0,50)}. ${style}`;
   }
   
-  // Fallback: describe what the article is literally about
-  return `visual representation of: ${item.summary.slice(0,150)}. realistic. editorial. no sci-fi.`;
+  return `concept diagram explaining: ${item.summary.slice(0,120)}. ${style}`;
 }
 
 // ─── FULL PIPELINE ─────────────────────────────────────────────

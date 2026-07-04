@@ -14,14 +14,16 @@ const aiClient = new OpenAI({
 });
 
 const PROMPT_GEN = `You are an editorial illustrator for The Verge / TechCrunch.
-Create a DETAILED image generation prompt based ONLY on the article content below.
+Create a DETAILED image prompt based ONLY on the article content.
 
 CRITICAL RULES:
-- Describe ONE specific scene, object, or visual metaphor from the article
+- Prefer SCHEMATIC or DIAGRAMMATIC style: flowcharts, comparisons, architecture diagrams, before/after visuals
+- If the article has DATA (costs, percentages, benchmarks) — show that visually
+- If it's about a PRODUCT — show the product concept or UI mockup
+- If it's about a TREND — show a comparison or timeline
 - NO generic "AI", "robot", "futuristic tech", "neural network", "flying object"
-- Think: what would an illustrator draw for THIS specific article?
-- Use concrete objects, specific colors, real-world contexts
-- Dark minimalist editorial style. No text labels. 200-350 chars English.
+- Think: what would an INFOGRAPHIC for this article look like?
+- Dark minimalist style. No text labels. 200-350 chars English.
 
 Output: ONLY the image prompt, nothing else.`;
 
