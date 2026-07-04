@@ -56,7 +56,13 @@ const body = markdownToHtml(post.body);
 const opts: any = { parse_mode: 'HTML' };
 if (post.media_url) {
   try {
-    await bot.sendPhoto('@cotos', post.media_url, { caption: body, parse_mode: 'HTML' });
+    let photo: any = post.media_url;
+    // Convert data URI to Buffer if needed
+    if (photo.startsWith('data:')) {
+      const [header, b64] = photo.split(',');
+      photo = Buffer.from(b64, 'base64');
+    }
+    await bot.sendPhoto('@cotos', photo, { caption: body, parse_mode: 'HTML' });
     console.log('Posted with image!');
   } catch {
     // Fallback to text-only if image fails
