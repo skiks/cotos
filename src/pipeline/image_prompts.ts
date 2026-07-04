@@ -99,7 +99,7 @@ async function generateImage(prompt: string): Promise<string | null> {
   if (!key) return null;
   try {
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image:generateContent?key=${key}`,
       { method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseModalities:['image','text']}}) }
     );
