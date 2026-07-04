@@ -4,6 +4,7 @@
  * Autopilot: score >= 8 + no red flags → auto-publish
  */
 import { publishPost, getQueue } from '../publisher/telegram.js';
+import db from '../db.js';
 
 const TIMEZONE = process.env.TIMEZONE || 'Asia/Jakarta';
 
@@ -53,6 +54,14 @@ function getNextSlot(): { time: string; type: string } | null {
 export async function tick(): Promise<{ published: number; skipped: number }> {
   const slot = getNextSlot();
   if (!slot) return { published: 0, skipped: 0 };
+
+  // MAX 4 posts per day (Jakarta timezone)
+  const now = nowJakarta();
+  const today = now.toISOString().slice(0, 10);
+  const postedToday = (db.prepare("SELECT COUNT(*) as c FROM posts WHERE status = 'posted' AND date(posted_at) = ?").get(today) as any)?.c || 0;
+  if (postedToday >= 4) {
+    return { published: 0, skipped: 0 };
+  }
 
   const queue = await getQueue();
   if (queue.length === 0) return { published: 0, skipped: 0 };

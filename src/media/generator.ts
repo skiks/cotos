@@ -4,7 +4,7 @@
  */
 import { buildImagePrompt } from './images.js';
 
-const MODEL = 'gemini-3.1-flash-lite-image';
+const MODEL = 'gemini-3-pro-image';
 
 function getKey(): string {
   const k = process.env['GEMINI_API_KEY'] || '';
