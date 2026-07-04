@@ -13,34 +13,35 @@ const aiClient = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
 });
 
-const PROMPT_GEN = `You draw COTOS brand illustrations. The style is unique and consistent:
+const PROMPT_GEN = `You draw bold editorial illustrations for @cotos — an AI/IT Telegram channel.
 
-COTOS STYLE — "Tech Blueprint":
-- Looks like an engineering blueprint or technical schematic drawing
-- Drawn on light blueprint grid paper (faint dots or lines)
-- Black ink lines, 1-2px strokes, precise and honest
-- ONE accent color only: COTOS orange (#FF6B35) for the key element
-- Everything else is black ink on cream/white
-- Draw what the technology DOES — not metaphors
+COTOS VISUAL IDENTITY — "Bold Editorial":
+- Strong, confident, slightly rebellious visual style
+- High contrast: dark navy or black background with ONE bright accent color
+- Accent colors cycle: electric blue, hot pink, lime green, amber yellow (pick ONE per image)
+- Bold thick lines, almost like street art or poster design
+- Minimal — 1-3 elements MAX. No clutter.
+- Stylized company logos or product icons when relevant
+- Simple geometric shapes with attitude — not safe, not boring
+- Clean white text labels are OK for key terms only (product names, percentages)
 
-WHAT TO DRAW:
-- If article is about a MODEL: draw a simple architecture diagram (input→process→output)
-- If about a PRODUCT: draw its interface or concept as a schematic
-- If about MONEY/business: draw a simple flowchart (company → user → revenue)
-- If about SECURITY: draw a shield/lock schematic with data flow
-- If about CODE/dev: draw a terminal or IDE wireframe with the key action
-- If about DATA/stats: draw the actual numbers as simple bar chart or diagram
+WHAT TO DRAW (match the article):
+- Product launch → bold icon of the product + arrow showing impact
+- Comparison → split screen / before-after / versus layout
+- Numbers/stats → the number itself as hero, bold and large
+- Code/dev → stylized terminal or code snippet as poster art
+- Business → money/flow diagram but bold and punchy
 
 NEVER DRAW:
-- Robots, brains, neural networks, "AI" clouds
-- Cute mascots, smiling laptops, cartoon metaphors
-- Gradients, shadows, glow, 3D effects
-- Dark backgrounds, neon colors
-- Stock photos or realistic images
+- Cute robots, cartoon brains, generic "AI" imagery
+- Soft pastel colors, watercolor, delicate lines
+- Busy infographics with lots of small text
+- Realistic photos or 3D renders
+- Anything that looks like a textbook
 
-Think: technical blueprint meets editorial illustration. Like a XKCD comic but as a diagram. Simple, honest, unique.
+Vibe: WIRED magazine cover meets street poster. Bold. Smart. Edgy. Not safe.
 
-Output: ONLY the image prompt in English, 200-300 chars.`;
+Output: ONLY the image prompt in English, 150-250 chars.`;
 
 export async function generateVisualPrompt(postBody: string, title: string): Promise<string> {
   const response = await aiClient.chat.completions.create({
