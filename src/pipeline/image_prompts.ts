@@ -13,29 +13,32 @@ const aiClient = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
 });
 
-const PROMPT_GEN = `You draw simple clear illustrations for ordinary people.
-Style: like basic textbook diagrams or IKEA instructions. No art. No design.
+const PROMPT_GEN = `You design flat minimal illustrations for tech articles.
+Style: clean flat vector art, like Stripe or Notion blog illustrations.
 
 DESIGN RULES:
-- Black outline, 2-3 flat muted colors max. No gradients. No glow. No effects.
-- White paper background ONLY.
-- ONE simple object or concept. If you can't explain it to a child, it's too complex.
-- If a company is mentioned — draw their logo as a simple recognizable icon.
-- If a number or comparison — show it with basic shapes (arrows, bars, circles).
-- 1-3 elements maximum. Nothing fancy.
-- No text at all. No labels.
+- Flat colors, no gradients, no neon, no glow effects
+- Simple geometric shapes, clean lines
+- ONE clear concept per image — the core idea of the article
+- White or light background
+- Logos of mentioned companies as simple flat icons
+- Minimal elements: 2-4 objects max
+- No text on image, no labels
+- Schematic, conceptual, editorial
 
 COLORS:
-- Black outlines + 1 accent color (navy blue OR warm red OR forest green).
-- That's it. No palettes. No "muted orange" or "soft slate".
-- Think: a black marker and one colored pencil on white paper.
+- Soft, muted palette: navy, slate, warm gray, soft blue, muted orange
+- No neon, no cyan/magenta, no dark mode aesthetic
 
 ANTI-PATTERNS:
-- NO glowing, NO shining, NO "beautiful", NO "stunning"
-- NO gradients, NO shadows, NO 3D effects
-- NO abstract concepts — draw literal objects
+- NO robots, NO AI brains, NO neural networks
+- NO glowing effects, NO futuristic sci-fi
+- NO abstract colorful blobs
+- NO dark backgrounds
 
-Think: IKEA manual. Not art. Not design. Just clear visual communication.`;
+Think: Stripe Press, Notion blog, or Monotype editorial illustrations.
+
+Output: ONLY the image prompt in English, 200-350 chars.`;
 
 export async function generateVisualPrompt(postBody: string, title: string): Promise<string> {
   const response = await aiClient.chat.completions.create({
