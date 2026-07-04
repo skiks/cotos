@@ -150,29 +150,23 @@ export async function factCheck(item: { title: string; summary_ru: string }) {
 function buildLiteralImagePrompt(item: { title: string; summary: string; category: string }): string {
   const text = (item.summary + ' ' + item.title).toLowerCase();
   
-  // Flat minimal style — Alen's choice
-  const style = 'flat vector illustration. minimal design. muted colors. simple shapes. clean white background. no gradients. no glow. no neon. no photorealistic. no faces.';
+  // COTOS style: flat minimal, NO TEXT IN IMAGE, abstract concept
+  const style = 'flat vector illustration. minimal. muted pastel colors. clean white background. geometric shapes only. NO TEXT. NO LETTERS. NO WORDS. NO LABELS. absolutely no text in the image. abstract concept illustration.';
   
-  if (text.includes('vs') || text.includes('comparison') || text.includes('benchmark')) {
-    return `simple comparison chart. two columns. ${item.title.slice(0,50)}. ${style}`;
+  if (text.includes('code') || text.includes('api') || text.includes('github')) {
+    return `abstract illustration of code blocks and geometric shapes representing programming. ${style}`;
   }
-  if (text.includes('code') || text.includes('api') || text.includes('github') || text.includes('dev')) {
-    return `simple laptop with code on screen. ${item.title.slice(0,50)}. ${style}`;
-  }
-  if (text.includes('model') || text.includes('llm') || text.includes('gpt') || text.includes('neural')) {
-    return `simple neural network diagram. nodes and connections. ${item.title.slice(0,40)}. ${style}`;
-  }
-  if (text.includes('robot') || text.includes('drone')) {
-    return `simple robot outline. ${item.title.slice(0,50)}. ${style}`;
+  if (text.includes('model') || text.includes('neural') || text.includes('gpt')) {
+    return `abstract neural network: circles connected by lines. geometric. ${style}`;
   }
   if (text.includes('security') || text.includes('hack')) {
-    return `simple shield with lock icon. ${item.title.slice(0,50)}. ${style}`;
+    return `abstract lock and shield made of simple geometric shapes. ${style}`;
   }
-  if (text.includes('money') || text.includes('funding') || text.includes('startup')) {
-    return `simple upward chart arrow. ${item.title.slice(0,50)}. ${style}`;
+  if (text.includes('money') || text.includes('funding')) {
+    return `abstract upward arrow with geometric coin shapes. ${style}`;
   }
   
-  return `simple illustration of: ${item.summary.slice(0,100)}. ${style}`;
+  return `abstract geometric illustration representing this concept: ${item.summary.slice(0, 80)}. ${style}`;
 }
 
 // ─── FULL PIPELINE ─────────────────────────────────────────────

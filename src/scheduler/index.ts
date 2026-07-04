@@ -80,8 +80,10 @@ export async function tick(): Promise<{ published: number; skipped: number }> {
 
   // Pick best match for slot type
   const best = candidates[0];
-  // AUTOPOST DISABLED — manual testing
-  // const result = await publishPost(best.id);
+  // AUTOPOST FULLY DISABLED — manual testing only
+  console.log('[Scheduler] tick — autopost disabled');
+  return { published: 0, skipped: 0 };
+  const result = await publishPost(best.id);
 
   if (result) {
     const label = slot.type === 'main_news' ? 'Главная новость' : 

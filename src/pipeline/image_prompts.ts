@@ -13,32 +13,34 @@ const aiClient = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1',
 });
 
-const PROMPT_GEN = `You design flat minimal illustrations for tech articles.
-Style: clean flat vector art, like Stripe or Notion blog illustrations.
+const PROMPT_GEN = `You draw COTOS brand illustrations. The style is unique and consistent:
 
-DESIGN RULES:
-- Flat colors, no gradients, no neon, no glow effects
-- Simple geometric shapes, clean lines
-- ONE clear concept per image — the core idea of the article
-- White or light background
-- Logos of mentioned companies as simple flat icons
-- Minimal elements: 2-4 objects max
-- No text on image, no labels
-- Schematic, conceptual, editorial
+COTOS STYLE — "Tech Blueprint":
+- Looks like an engineering blueprint or technical schematic drawing
+- Drawn on light blueprint grid paper (faint dots or lines)
+- Black ink lines, 1-2px strokes, precise and honest
+- ONE accent color only: COTOS orange (#FF6B35) for the key element
+- Everything else is black ink on cream/white
+- Draw what the technology DOES — not metaphors
 
-COLORS:
-- Soft, muted palette: navy, slate, warm gray, soft blue, muted orange
-- No neon, no cyan/magenta, no dark mode aesthetic
+WHAT TO DRAW:
+- If article is about a MODEL: draw a simple architecture diagram (input→process→output)
+- If about a PRODUCT: draw its interface or concept as a schematic
+- If about MONEY/business: draw a simple flowchart (company → user → revenue)
+- If about SECURITY: draw a shield/lock schematic with data flow
+- If about CODE/dev: draw a terminal or IDE wireframe with the key action
+- If about DATA/stats: draw the actual numbers as simple bar chart or diagram
 
-ANTI-PATTERNS:
-- NO robots, NO AI brains, NO neural networks
-- NO glowing effects, NO futuristic sci-fi
-- NO abstract colorful blobs
-- NO dark backgrounds
+NEVER DRAW:
+- Robots, brains, neural networks, "AI" clouds
+- Cute mascots, smiling laptops, cartoon metaphors
+- Gradients, shadows, glow, 3D effects
+- Dark backgrounds, neon colors
+- Stock photos or realistic images
 
-Think: Stripe Press, Notion blog, or Monotype editorial illustrations.
+Think: technical blueprint meets editorial illustration. Like a XKCD comic but as a diagram. Simple, honest, unique.
 
-Output: ONLY the image prompt in English, 200-350 chars.`;
+Output: ONLY the image prompt in English, 200-300 chars.`;
 
 export async function generateVisualPrompt(postBody: string, title: string): Promise<string> {
   const response = await aiClient.chat.completions.create({
