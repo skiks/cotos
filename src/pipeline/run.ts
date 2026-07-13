@@ -23,8 +23,17 @@ const CLASSIFY_PROMPT = `Classify this AI/IT news item. Return JSON only:
   "is_ai_it": true/false,
   "is_english": true/false,
   "is_hype": true/false,
+  "is_ad": true/false,
+  "ad_reason": "если is_ad=true, объясни почему (promotional language, course/school/event marketing, 'регистрация', 'осталось N мест', 'запишитесь', 'скидка', direct sales pitch)",
   "summary_ru": "краткое описание на русском, 2-3 предложения"
-}`;
+}
+
+ADS detection — is_ad=true if ANY of:
+- Promotes a paid course, bootcamp, school, university program, webinar, masterclass
+- Contains "день открытых дверей", "регистрация", "запишитесь", "осталось N мест", "скидка", "промокод"
+- Direct sales pitch for a product/service with pricing info
+- Sponsored content or native advertising
+- Marketing language: "вы получите", "вас ждет", "уникальная возможность", "не упустите"`;
 
 const SCORE_PROMPT = `Score this AI/IT news item (1-10). Return JSON only:
 {
@@ -51,7 +60,7 @@ Rules:
 - **Markdown: **bold** ONLY on company/product names (OpenAI, Google, iPhone, Claude). Maximum 2-3 bold words per post.**
 - **NO bold on verbs (launched, made), adjectives (cool, fast), or generic words.**
 - _italic_ — only ONCE per post, for irony or emphasis.
-- ||spoiler|| — only ONCE per post, for intrigue.
+- **NO spoilers (||text||). NEVER use spoiler tags.**
 - **Don't overuse formatting. Most of the text should be plain. Less tags = better.**
 - **Mostly lowercase. Capitals — RARE, only for proper nouns (OpenAI, Google).**
 - **Allow typos: "пшел" "чо" "ща" "ваще" "эт" "кароч".**
@@ -91,7 +100,7 @@ async function aiCall(systemPrompt: string, userContent: string): Promise<any> {
     temperature: 0.7,  // locked for style consistency
     response_format: { type: 'json_object' },
   });
-  return JSON.parse(response.choices[0].message.content || '{}');
+  return JSON.parse(response.choices[0]?.message?.content || '{}');
 }
 
 // ─── PIPELINE STEPS ────────────────────────────────────────────
@@ -126,16 +135,17 @@ export async function rewrite(item: { title: string; summary_ru: string; categor
   const response = await client.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: 'Ты — Алён. Куратор AI/IT с Бали. Output HTML: <b>company names</b>, <tg-spoiler>jokes</tg-spoiler>. No markdown **. Ты не запускаешь продукты, ты про них пишешь. "Разрабы сделали", "компания выкатила" — твой стиль. Не "мы запустили". Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. — это помогает читать. Мат — ОЧЕНЬ редко, только когда прям идеально в тему. Без быдло-стиля. Вставляй кастомные эмодзи ссылки на паки типа t.me/addemoji/blabla.' },
+      { role: 'system', content: 'Ты — Алён. Куратор AI/IT с Бали. Output HTML: <b>company names</b> ONLY. НЕ ИСПОЛЬЗУЙ <tg-spoiler> — вообще никогда. Никаких спойлеров. Ты не запускаешь продукты, ты про них пишешь. \"Разрабы сделали\", \"компания выкатила\" — твой стиль. Не \"мы запустили\". Пишешь в телегу друзьям быстро с опечатками без заглавных букв. <b>жирный</b> ТОЛЬКО для имён собственных — компании, продукты, сервисы. Не жирни обычные слова. Мат — 1-2 слова на пост: \"бля\", \"охуенно\", \"пиздец\", \"хуёво\". Без быдло-стиля.' },
       { role: 'user', content: prompt },
     ],
     temperature: 0.8,
     max_tokens: 400,
   });
-  let htmlBody = response.choices[0].message.content || '';
-    // Convert markdown to HTML for Telegram
+  let htmlBody = response.choices[0]?.message?.content || '';
+    // Convert markdown to HTML for Telegram — NO spoilers ever
     htmlBody = htmlBody.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-    htmlBody = htmlBody.replace(/\|\|(.+?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
+    htmlBody = htmlBody.replace(/\|\|(.+?)\|\|/g, '$1'); // strip spoiler markers entirely
+    htmlBody = htmlBody.replace(/<tg-spoiler>.*?<\/tg-spoiler>/g, ''); // remove any existing
     htmlBody = htmlBody.replace(/_([^_]+)_/g, '<i>$1</i>');
     return htmlBody;
 }
@@ -216,16 +226,38 @@ export async function processItem(rawId: number) {
       source_url: raw.url,
     });
 
-    db.prepare(`
-      INSERT INTO posts (processed_item_id, post_type, title, body, source_links, media_url, status)
-      VALUES (?, 'main_news', ?, ?, ?, ?, 'draft')
-    `).run(processedId, raw.title, postBody, raw.url, raw.media_url || null);
-
-    // Async: generate AI image if no source media
-    if (!raw.media_url) {
-      ensureImageForPost(Number(db.prepare('SELECT last_insert_rowid()').get() as any)).then(imgUrl => {
-        if (imgUrl) db.prepare('UPDATE posts SET media_url = ? WHERE id = (SELECT MAX(id) FROM posts)').run(imgUrl);
-      }).catch(() => {});
+    // Generate Nano Banana image for every 3rd post (synchronously, before insert)
+    // so the photo is guaranteed attached on first publish — no async race.
+    let aiImageUrl: string | null = null;
+    const postedCount = (db.prepare(
+      `SELECT COUNT(*) AS c FROM posts WHERE status IN ('draft','published','posted')`
+    ).get() as any).c as number;
+    const shouldGenerate = postedCount % 3 === 0; // 1st, 4th, 7th ... → every 3rd (0-indexed: 0,3,6)
+    if (shouldGenerate) {
+      // Create post first (without media), then we'll update media_url after generation.
+      const insPost = db.prepare(`
+        INSERT INTO posts (processed_item_id, post_type, title, body, source_links, media_url, status)
+        VALUES (?, 'main_news', ?, ?, ?, ?, 'draft')
+      `).run(processedId, raw.title, postBody, raw.url, null);
+      const newPostId = Number(insPost.lastInsertRowid);
+      console.log(`[ImageGen] post #${newPostId} → Nano Banana (every 3rd, total=${postedCount})`);
+      aiImageUrl = await ensureImageForPost(newPostId); // sync await — guarantees image or null
+      if (!aiImageUrl) {
+        // Generation failed → fall back to OG image if we have one
+        if (raw.media_url) {
+          db.prepare('UPDATE posts SET media_url = ? WHERE id = ?').run(raw.media_url, newPostId);
+          console.log(`[ImageGen] #${newPostId} → fell back to OG media_url`);
+        } else {
+          console.log(`[ImageGen] #${newPostId} → no image (GenAI failed, no OG fallback)`);
+        }
+      }
+    } else {
+      // No AI gen this round — use OG if available, else null (publisher will skip)
+      db.prepare(`
+        INSERT INTO posts (processed_item_id, post_type, title, body, source_links, media_url, status)
+        VALUES (?, 'main_news', ?, ?, ?, ?, 'draft')
+      `).run(processedId, raw.title, postBody, raw.url, raw.media_url || null);
+      console.log(`[ImageGen] post → OG only (every 3rd skipped, total=${postedCount})`);
     }
 
     db.prepare('UPDATE raw_items SET status = ? WHERE id = ?').run('posted', rawId);
